@@ -234,7 +234,7 @@ class SSSPBreaker:
         return Bp, U
 
     # ---------------- driver ----------------
-    def run(self, allow_fallback: bool = True) -> Tuple[List[float], List[Optional[int]]]:
+    def run(self) -> Tuple[List[float], List[Optional[int]]]:
         n = self.g.n
         top_l = min(self.max_depth, max(1, math.ceil(math.log(max(2, n)) / max(1, self.t))))
         _B, _U = self.bmssp(top_l, INF, {self.s})
@@ -243,22 +243,46 @@ class SSSPBreaker:
 
 # Public API
 
-def sssp_break_sorting(g: Graph, source: int = 0, allow_fallback: bool = True) -> Tuple[List[float], List[Optional[int]]]:
+def sssp_break_sorting(g: Graph, source: int = 0, ) -> Tuple[List[float], List[Optional[int]]]:
     alg = SSSPBreaker(g, source)
-    dist, pred = alg.run(allow_fallback=allow_fallback)
+    dist, pred = alg.run()
     return dist, pred
+import random
+
+def random_graph(n, m, max_weight=10, seed=None):
+    """
+    Generate a random directed graph with n nodes and m edges.
+    
+    Parameters:
+        n (int): number of nodes
+        m (int): number of edges
+        max_weight (int): maximum edge weight (>=1)
+        seed (int or None): random seed for reproducibility
+    
+    Returns:
+        Graph: an instance of your Graph class
+    """
+    if seed is not None:
+        random.seed(seed)
+    
+    g = Graph(n)
+    edges = set()
+    
+    while len(edges) < m:
+        u = random.randrange(n)
+        v = random.randrange(n)
+        if u != v and (u, v) not in edges:
+            w = random.randint(1, max_weight)
+            g.add_edge(u, v, w)
+            edges.add((u, v))
+    
+    return g
 
 # ------------------------------
 # Simple sanity test (will run if executed directly)
 # ------------------------------
 if __name__ == "__main__":
-    g = Graph(5)
-    g.add_edge(0, 1, 2)
-    g.add_edge(0, 2, 5)
-    g.add_edge(1, 2, 1)
-    g.add_edge(1, 3, 2)
-    g.add_edge(2, 3, 1)
-    g.add_edge(3, 4, 3)
+    g = random_graph(50, 200, max_weight=20, seed=42)
     dist, pred = sssp_break_sorting(g, 0)
     print("dist:", dist)
     print("pred:", pred)
