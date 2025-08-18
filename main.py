@@ -3,6 +3,10 @@ from dataclasses import dataclass
 import heapq
 import math
 from typing import List, Tuple, Iterable, Optional, Dict, Set
+import networkx as nx
+import matplotlib.pyplot as plt
+from matplotlib.patches import FancyArrowPatch
+from matplotlib.collections import PatchCollection
 
 INF = float("inf")
 
@@ -278,11 +282,89 @@ def random_graph(n, m, max_weight=10, seed=None):
     
     return g
 
+def visualize_graph(g, dist=None, pred=None, source=None, highlight_path_to=None):
+    """
+    Visualize the directed graph with modern styling and better spacing.
+    """
+    G = nx.DiGraph()
+    for u in range(g.n):
+        for v, w in g.adj[u]:
+            G.add_edge(u, v, weight=w)
+
+    # Choose layout adaptively
+    if g.n <= 10:
+        pos = nx.circular_layout(G)  # nice for small graphs
+    elif g.n <= 30:
+        pos = nx.kamada_kawai_layout(G)  # well spread
+    else:
+        pos = nx.spring_layout(G, k=2/len(G.nodes())**0.5, iterations=200)
+
+    plt.figure(figsize=(10, 8))  # big canvas
+
+    # Node styling
+    base_colors = []
+    for n in G.nodes():
+        if source is not None and n == source:
+            base_colors.append("orange")
+        else:
+            base_colors.append("skyblue")
+
+    nx.draw_networkx_nodes(
+        G, pos, node_size=900, node_color=base_colors,
+        edgecolors="black", linewidths=1.5, alpha=0.95
+    )
+
+    # Draw edges with slight curvature
+    nx.draw_networkx_edges(
+        G, pos, arrowstyle="->", arrowsize=15, edge_color="gray",
+        connectionstyle="arc3,rad=0.1", width=1.4, alpha=0.8
+    )
+
+    # Distances in labels
+    if dist is not None:
+        labels = {i: f"{i}\n({d if d < float('inf') else '∞'})" for i, d in enumerate(dist)}
+    else:
+        labels = {i: str(i) for i in G.nodes()}
+    nx.draw_networkx_labels(G, pos, labels=labels, font_size=11, font_weight="bold")
+
+    # Edge weights
+    edge_labels = nx.get_edge_attributes(G, "weight")
+    nx.draw_networkx_edge_labels(G, pos, edge_labels=edge_labels, font_size=9, label_pos=0.6)
+
+    # Highlight shortest path if requested
+    if pred is not None and highlight_path_to is not None:
+        path_nodes = []
+        v = highlight_path_to
+        while v is not None and v != source:
+            path_nodes.append(v)
+            v = pred[v]
+        if v == source:
+            path_nodes.append(source)
+            path_nodes.reverse()
+            path_edges = [(path_nodes[i], path_nodes[i+1]) for i in range(len(path_nodes)-1)]
+
+            # Highlight path edges
+            nx.draw_networkx_edges(
+                G, pos, edgelist=path_edges, edge_color="red",
+                width=3, arrows=True, connectionstyle="arc3,rad=0.1"
+            )
+
+            # Highlight path nodes
+            nx.draw_networkx_nodes(
+                G, pos, nodelist=path_nodes, node_color="lightgreen",
+                node_size=1000, edgecolors="black", linewidths=2
+            )
+
+    plt.axis("off")
+    plt.tight_layout()
+    plt.show()
+
 # ------------------------------
 # Simple sanity test (will run if executed directly)
 # ------------------------------
 if __name__ == "__main__":
-    g = random_graph(50, 200, max_weight=20, seed=42)
+    g = random_graph(10, 30, max_weight=10, seed=42)
     dist, pred = sssp_break_sorting(g, 0)
     print("dist:", dist)
     print("pred:", pred)
+    visualize_graph(g, dist=dist, pred=pred, source=0, highlight_path_to=5)
