@@ -32,4 +32,6 @@ cd bmssp
 pip install -r requirements.txt
 ```
 ## Usage
+```
 python main.py --nodes 50 --edges 200 --source 0
+```
